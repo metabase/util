@@ -78,19 +78,22 @@
    For drivers that enter hosts including the protocol (https://host), copy the protocol over as well"
   [details]
   (if (use-ssh-tunnel? details)
-    (let [[_ proto host] (re-find #"(.*://)?(.*)" (:host details))
-          [connection tunnel-entrance-port] (start-ssh-tunnel (assoc details :host host)) ;; don't include L7 protocol in ssh tunnel
-          details-with-tunnel (assoc details
-                                :port tunnel-entrance-port ;; This parameter is set dynamically when the connection is established
-                                :host (str proto "localhost")
-                                :tunnel-entrance-port tunnel-entrance-port ;; the input port is not known until the connection is opened
-                                :tunnel-connection connection)]
+    (let [[_ proto host]                    (re-find #"(.*://)?(.*)" (:host details))
+          ;; don't include L7 protocol in ssh tunnel
+          [connection tunnel-entrance-port] (start-ssh-tunnel (assoc details :host host))
+          details-with-tunnel               (assoc details
+                                              ;; This parameter is set dynamically when the connection is established
+                                              :port tunnel-entrance-port
+                                              :host (str proto "localhost")
+                                              ;; the input port is not known until the connection is opened
+                                              :tunnel-entrance-port tunnel-entrance-port
+                                              :tunnel-connection connection)]
       details-with-tunnel)
     details))
 
 (defn with-ssh-tunnel*
   "Starts an SSH tunnel, runs the supplied function with the tunnel open, then closes it"
-  [{:keys [host port tunnel-host tunnel-user tunnel-pass] :as details} f]
+  [details f]
   (if (use-ssh-tunnel? details)
     (let [details-with-tunnel (include-ssh-tunnel details)]
       (log/errorf "\nbefore:\n%s\n" (with-out-str (clojure.pprint/pprint details)))

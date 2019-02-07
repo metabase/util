@@ -12,10 +12,12 @@
             [colorize.core :as colorize]
             [medley.core :as m]
             [metabase.util
-             [config :as config.u]
+             [config :as config]
              [i18n :refer [tru]]]
             [ring.util.codec :as codec])
-  (:import [java.text Normalizer Normalizer$Form]
+  (:import java.math.RoundingMode
+           java.net.URL
+           [java.text Normalizer Normalizer$Form]
            java.util.concurrent.TimeoutException
            javax.xml.bind.DatatypeConverter))
 
@@ -61,9 +63,11 @@
 (defn email?
   "Is STRING a valid email address?"
   ^Boolean [^String s]
-  (boolean (when (string? s)
-             (re-matches #"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
-                         (str/lower-case s)))))
+  (boolean
+   (when (string? s)
+     (re-matches
+      #"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
+      (str/lower-case s)))))
 
 
 (defn url?
@@ -71,7 +75,7 @@
   IP addresses will return `false`.)"
   ^Boolean [^String s]
   (boolean (when (seq s)
-             (when-let [^java.net.URL url (ignore-exceptions (java.net.URL. s))]
+             (when-let [^URL url (ignore-exceptions (URL. s))]
                ;; these are both automatically downcased
                (let [protocol (.getProtocol url)
                      host     (.getHost url)]
@@ -111,16 +115,6 @@
   (or (nil? x)
       (f x)))
 
-(defn rpartial
-  "Like `partial`, but applies additional args *before* BOUND-ARGS.
-   Inspired by [`-rpartial` from dash.el](https://github.com/magnars/dash.el#-rpartial-fn-rest-args)
-
-    ((partial - 5) 8)  -> (- 5 8) -> -3
-    ((rpartial - 5) 8) -> (- 8 5) -> 3"
-  [f & bound-args]
-  (fn [& args]
-    (apply f (concat args bound-args))))
-
 (defmacro prog1
   "Execute FIRST-FORM, then any other expressions in BODY, presumably for side-effects; return the result of
    FIRST-FORM.
@@ -154,7 +148,7 @@
 
 (def ^:private emoji*
   (delay
-   (if (config.u/get-boolean :mb-emoji-in-logs)
+   (if (config/boolean :mb-emoji-in-logs)
      identity
      (constantly ""))))
 
@@ -165,7 +159,7 @@
 
 (def ^:private colorize*
   (delay
-   (if (config.u/get-boolean :mb-colorize-logs)
+   (if (config/boolean :mb-colorize-logs)
      (fn [color x]
        (colorize/color (keyword color) x))
      (fn [_ x]
@@ -207,8 +201,8 @@
 
 (defprotocol ^:private IFilteredStacktrace
   (filtered-stacktrace [this]
-    "Get the stack trace associated with E and return it as a vector with non-metabase frames after the last Metabase
-    frame filtered out."))
+    "Get the stack trace associated with `this` and return it as a vector, with non-Metabase frames after the last
+    Metabase frame filtered out."))
 
 ;; These next two functions are a workaround for this bug https://dev.clojure.org/jira/browse/CLJ-1790
 ;; When Throwable/Thread are type-hinted, they return an array of type StackTraceElement, this causes
@@ -270,16 +264,7 @@
      (round-to-decimals 2 35.5058998M) -> 35.51"
   ^Double [^Integer decimal-place, ^Number number]
   {:pre [(integer? decimal-place) (number? number)]}
-  (double (.setScale (bigdec number) decimal-place BigDecimal/ROUND_HALF_UP)))
-
-(defn ^:deprecated drop-first-arg
-  "Returns a new fn that drops its first arg and applies the rest to the original.
-   Useful for creating `extend` method maps when you don't care about the `this` param. :flushed:
-
-     ((drop-first-arg :value) xyz {:value 100}) -> (apply :value [{:value 100}]) -> 100"
-  ^clojure.lang.IFn [^clojure.lang.IFn f]
-  (comp (partial apply f) rest list))
-
+  (double (.setScale (bigdec number) decimal-place RoundingMode/HALF_UP)))
 
 (defn- check-protocol-impl-method-map
   "Check that the methods expected for PROTOCOL are all implemented by METHOD-MAP, and that no extra methods are
@@ -538,7 +523,7 @@
 (defn is-java-9-or-higher?
   "Are we running on Java 9 or above?"
   ([]
-   (is-java-9-or-higher? (System/getProperty "java.version")))
+   (is-java-9-or-higher? (config/string :java-version)))
   ([java-version-str]
    (when-let [[_ java-major-version-str] (re-matches #"^(?:1\.)?(\d+).*$" java-version-str)]
      (>= (Integer/parseInt java-major-version-str) 9))))

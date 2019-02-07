@@ -161,7 +161,7 @@
 
 (def FieldType
   "Schema for a valid Field type (does it derive from `:type/*`)?"
-  (with-api-error-message (s/pred (u/rpartial isa? :type/*) (tru "Valid field type"))
+  (with-api-error-message (s/pred #(isa? % :type/*) (tru "Valid field type"))
     (tru "value must be a valid field type.")))
 
 (def FieldTypeKeywordOrString

@@ -96,11 +96,26 @@
   (Literal. (name s)))
 
 
-(def ^{:arglists '([& exprs])}  +  "Math operator. Interpose `+` between EXPRS and wrap in parentheses." (partial hsql/call :+))
-(def ^{:arglists '([& exprs])}  -  "Math operator. Interpose `-` between EXPRS and wrap in parentheses." (partial hsql/call :-))
-(def ^{:arglists '([& exprs])}  /  "Math operator. Interpose `/` between EXPRS and wrap in parentheses." (partial hsql/call :/))
-(def ^{:arglists '([& exprs])}  *  "Math operator. Interpose `*` between EXPRS and wrap in parentheses." (partial hsql/call :*))
-(def ^{:arglists '([& exprs])} mod "Math operator. Interpose `%` between EXPRS and wrap in parentheses." (partial hsql/call :%))
+(def ^{:arglists '([& exprs])}  +
+  "Math operator. Interpose `+` between `exprs`; wrap in parentheses."
+  (partial hsql/call :+))
+
+(def ^{:arglists '([& exprs])}  -
+  "Math operator. Interpose `-` between `exprs`; wrap in parentheses."
+  (partial hsql/call :-))
+
+(def ^{:arglists '([& exprs])}  /
+  "Math operator. Interpose `/` between `exprs`; wrap in parentheses."
+  (partial hsql/call :/))
+
+(def ^{:arglists '([& exprs])}  *
+  "Math operator. Interpose `*` between `exprs`; wrap in parentheses."
+  (partial hsql/call :*))
+
+(def ^{:arglists '([& exprs])} mod
+  "Math operator. Interpose `%` between `exprs`; wrap in parentheses."
+  (partial hsql/call :%))
+
 
 (defn inc "Add 1 to X."        [x] (+ x 1))
 (defn dec "Subtract 1 from X." [x] (- x 1))
